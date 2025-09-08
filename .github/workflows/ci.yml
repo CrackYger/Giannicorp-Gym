@@ -22,12 +22,13 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      # Optional – kann drin bleiben, schadet nicht
       - name: Fix npm bin permissions
-        run: chmod -R +x node_modules/.bin
+        run: chmod -R +x node_modules/.bin || true
 
-      - name: Build web (Vite)
+      # Wichtig: Vite NICHT via "npm run build" starten!
+      - name: Build web (Vite via Node)
         run: node ./node_modules/vite/bin/vite.js build
-
 
       - name: Ensure Capacitor iOS platform
         run: npx cap sync ios
