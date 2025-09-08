@@ -26,7 +26,8 @@ jobs:
         run: chmod -R +x node_modules/.bin
 
       - name: Build web (Vite)
-        run: npm run build
+        run: node ./node_modules/vite/bin/vite.js build
+
 
       - name: Ensure Capacitor iOS platform
         run: npx cap sync ios
