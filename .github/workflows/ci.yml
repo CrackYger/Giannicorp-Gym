@@ -22,12 +22,14 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      - name: Fix npm bin permissions
+        run: chmod -R +x node_modules/.bin
+
       - name: Build web (Vite)
         run: npm run build
 
       - name: Ensure Capacitor iOS platform
-        run: |
-          npx cap sync ios
+        run: npx cap sync ios
 
       - name: CocoaPods install
         run: |
