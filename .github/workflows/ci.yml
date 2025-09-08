@@ -22,18 +22,17 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      # (Optional) schadet nicht, falls doch irgendwo .bin genutzt wird
+      # optional – schadet nicht
       - name: Fix npm bin permissions
         run: chmod -R +x node_modules/.bin || true
 
-      # WICHTIG: Vite NICHT über "npm run build", sondern direkt via node
+      # Vite NICHT über npm-scripts starten (umgeht Permission denied)
       - name: Build web (Vite via Node)
         run: node ./node_modules/vite/bin/vite.js build
 
-      # Capacitor ebenfalls direkt via node (kein npx cap!)
-      - name: Capacitor doctor (via Node)
-        run: node node_modules/@capacitor/cli/bin/capacitor.js doctor || true
-
+      # KEIN 'npx cap' mehr – immer direkt die JS-Datei mit node ausführen
+      - name: Capacitor doctor
+        run: node ./node_modules/@capacitor/cli/bin/capacitor.js doctor || true
 
       - name: Add iOS platform
         run: node ./node_modules/@capacitor/cli/bin/capacitor.js add ios --skip-deps
@@ -46,7 +45,6 @@ jobs:
           cd ios/App
           pod install
 
-      # ExportOptions on-the-fly erzeugen (für unsigned Export)
       - name: Create exportOptions.plist
         run: |
           cat > ios/App/exportOptions.plist <<'PLIST'
