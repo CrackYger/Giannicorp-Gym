@@ -1,4 +1,4 @@
-name: Build iOS App
+name: Build iOS App (unsigned)
 
 on:
   push:
@@ -22,26 +22,44 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Install clsx
-        run: npm install clsx
-
-
-      # Optional – kann drin bleiben, schadet nicht
+      # (Optional) schadet nicht, falls doch irgendwo .bin genutzt wird
       - name: Fix npm bin permissions
         run: chmod -R +x node_modules/.bin || true
 
-      # Wichtig: Vite NICHT via "npm run build" starten!
+      # WICHTIG: Vite NICHT über "npm run build", sondern direkt via node
       - name: Build web (Vite via Node)
         run: node ./node_modules/vite/bin/vite.js build
 
-      - name: Ensure Capacitor iOS platform
-        run: node node_modules/@capacitor/cli/bin/capacitor.js doctor || true
+      # Capacitor ebenfalls direkt via node (kein npx cap!)
+      - name: Capacitor doctor
+        run: node ./node_modules/@capacitor/cli/bin/capacitor.js doctor || true
 
+      - name: Add iOS platform
+        run: node ./node_modules/@capacitor/cli/bin/capacitor.js add ios --skip-deps
+
+      - name: Sync iOS
+        run: node ./node_modules/@capacitor/cli/bin/capacitor.js sync ios
 
       - name: CocoaPods install
         run: |
           cd ios/App
           pod install
+
+      # ExportOptions on-the-fly erzeugen (für unsigned Export)
+      - name: Create exportOptions.plist
+        run: |
+          cat > ios/App/exportOptions.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>development</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>compileBitcode</key><false/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          PLIST
 
       - name: Xcode archive (unsigned)
         run: |
@@ -52,7 +70,7 @@ jobs:
             -archivePath build/App.xcarchive archive \
             CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 
-      - name: Package .ipa
+      - name: Package .ipa (unsigned)
         run: |
           xcodebuild -exportArchive \
             -archivePath build/App.xcarchive \
