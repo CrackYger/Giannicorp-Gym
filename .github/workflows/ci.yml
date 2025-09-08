@@ -34,7 +34,12 @@ jobs:
         run: node node_modules/@capacitor/cli/bin/capacitor doctor || true
 
       - name: Add iOS platform
-        run: node node_modules/@capacitor/cli/bin/capacitor add ios --skip-deps
+        run: |
+          if [ -d ios ]; then
+            echo "iOS platform already present"
+          else
+            node node_modules/@capacitor/cli/bin/capacitor add ios
+          fi
 
       - name: Sync iOS
         run: node node_modules/@capacitor/cli/bin/capacitor sync ios
