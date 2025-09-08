@@ -31,8 +31,9 @@ jobs:
         run: node ./node_modules/vite/bin/vite.js build
 
       # Capacitor ebenfalls direkt via node (kein npx cap!)
-      - name: Capacitor doctor
-        run: node ./node_modules/@capacitor/cli/bin/capacitor.js doctor || true
+      - name: Capacitor doctor (via Node)
+        run: node node_modules/@capacitor/cli/bin/capacitor.js doctor || true
+
 
       - name: Add iOS platform
         run: node ./node_modules/@capacitor/cli/bin/capacitor.js add ios --skip-deps
