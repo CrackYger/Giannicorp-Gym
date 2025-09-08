@@ -49,21 +49,6 @@ jobs:
           cd ios/App
           pod install
 
-      - name: Create exportOptions.plist
-        run: |
-          cat > ios/App/exportOptions.plist <<'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>method</key><string>development</string>
-            <key>signingStyle</key><string>manual</string>
-            <key>compileBitcode</key><false/>
-            <key>manageAppVersionAndBuildNumber</key><false/>
-          </dict>
-          </plist>
-          PLIST
-
       - name: Xcode archive (unsigned)
         run: |
           xcodebuild -workspace ios/App/App.xcworkspace \
@@ -73,17 +58,16 @@ jobs:
             -archivePath build/App.xcarchive archive \
             CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
 
-      - name: Package .ipa (unsigned)
+      # <<<<<<<< WICHTIG: .ipa manuell packen (kein Signing nötig) >>>>>>>>
+      - name: Create unsigned .ipa manually
         run: |
-          xcodebuild -exportArchive \
-            -archivePath build/App.xcarchive \
-            -exportOptionsPlist ios/App/exportOptions.plist \
-            -exportPath build/ipa \
-            CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
-        continue-on-error: true
+          rm -rf build/ipa
+          mkdir -p build/ipa/Payload
+          cp -R "build/App.xcarchive/Products/Applications/App.app" build/ipa/Payload/
+          (cd build/ipa && zip -r giannicorp-fitness-unsigned.ipa Payload >/dev/null)
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: giannicorp-fitness-ipa
-          path: build/ipa
+          path: build/ipa/*.ipa
