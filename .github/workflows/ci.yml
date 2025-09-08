@@ -22,6 +22,10 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      - name: Install clsx
+        run: npm install clsx
+
+
       # Optional – kann drin bleiben, schadet nicht
       - name: Fix npm bin permissions
         run: chmod -R +x node_modules/.bin || true
