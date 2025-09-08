@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+body { @apply bg-gc-bg text-gc-ink antialiased font-sans; padding-bottom: env(safe-area-inset-bottom); }
+/* Subtle radial gradient background */
+body::before{
+  content: ''; position: fixed; inset: -20% -10% auto -10%; height: 60vh;
+  background: radial-gradient(800px 400px at 20% 10%, rgba(10,132,255,0.18), transparent 60%);
+  pointer-events:none; z-index:-1; filter: blur(40px);
+}
+
+/* Glass + Card */
+.glass { @apply bg-white/10 backdrop-blur-md border border-white/10; }
+.card  { @apply glass rounded-2xl p-5 shadow-elev transition-all duration-200; }
+.card:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,0.14);}
+
+/* Buttons */
+.btn { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 bg-gc-accent text-white hover:opacity-90 active:scale-[.98] focus:outline-none focus:ring-2 focus:ring-white/10; }
+.btn-ghost { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 bg-white/5 text-gc-ink hover:bg-white/10 border border-white/10; }
+.btn-outline { @apply inline-flex items-center gap-2 rounded-xl px-4 py-2 border border-white/20 hover:bg-white/5; }
+
+/* Inputs */
+.input { @apply w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-gc-ink placeholder:opacity-60 focus:outline-none focus:ring-2 focus:ring-white/10; }
+.label { @apply block text-sm text-gc-subtle mb-1; }
+.field { @apply grid gap-1; }
+
+/* Segmented Control */
+.seg { @apply inline-flex items-center bg-white/5 border border-white/10 rounded-xl p-1; }
+.seg > button { @apply px-3 py-1.5 rounded-lg text-sm hover:bg-white/5; }
+.seg > button[aria-pressed="true"] { @apply bg-gc-accent text-white; }
+
+/* Chips */
+.chip { @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 text-sm; }
+
+/* Toolbar & Section */
+.toolbar { @apply flex flex-wrap items-center gap-2; }
+.section-title { @apply text-lg font-semibold mb-2; }
+
+/* Table */
+.table { @apply w-full text-sm; }
+.table thead tr { @apply text-left border-b border-white/10; }
+.table th, .table td { @apply py-2; }
+.table tbody tr { @apply border-b border-white/5; }
+.table tbody tr:last-child { @apply border-b-0; }
+
+/* Safe area bottom spacing for mobile tabbar */
+.safe-b { padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
+
+/* Topbar spacing */
+.content { @apply pt-6 md:pt-6 pb-20 md:pb-6 max-w-6xl mx-auto px-4; }
+
+
+/* Dense tiles like Admin */
+.tile { @apply glass rounded-2xl p-4 shadow-elev; }
+.tile .label { @apply text-xs text-gc-subtle; }
+.tile .value { @apply text-2xl font-bold leading-tight; }
+.tile .sub { @apply text-xs text-gc-subtle; }
+
+/* === iPhone-first enhancements === */
+.tap { @apply min-h-[44px] min-w-[44px]; } /* Apple HIG minimum target */
+
+/* Sticky active-session bar */
+.active-bar { @apply fixed bottom-0 inset-x-0 z-40 glass border-t border-white/10 safe-b; }
+.active-bar-inner { @apply max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3; }
+
+/* Bottom sheet */
+.sheet { @apply fixed inset-0 z-50; }
+.sheet-backdrop { @apply absolute inset-0 bg-black/50; }
+.sheet-panel {
+  @apply absolute left-0 right-0 bottom-0 bg-gc-surface rounded-t-2xl p-4 border-t border-white/10;
+  max-height: 80vh; overflow-y: auto;
+  box-shadow: 0 -8px 40px rgba(0,0,0,.4);
+}
+.sheet-handle { @apply mx-auto my-2 h-1.5 w-10 rounded-full bg-white/20; }
+
+/* Inputs larger for thumb use */
+.input-lg { @apply input text-base py-3; }
+.btn-lg { @apply btn text-base py-3; }
+.btn-square { @apply btn-ghost h-11 w-11 rounded-xl flex items-center justify-center text-lg; }
+
+/* Content width tuned for phone */
+@media (max-width: 768px) {
+  .content { @apply max-w-xl; }
+  .tile .value { @apply text-xl; }
+}

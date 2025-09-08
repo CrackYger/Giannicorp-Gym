@@ -1,0 +1,9 @@
+{
+  "extends": ["eslint:recommended"],
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@typescript-eslint", "react-refresh"],
+  "rules": {
+    "react-refresh/only-export-components": "warn"
+  },
+  "env": { "browser": true, "es2021": true }
+}
