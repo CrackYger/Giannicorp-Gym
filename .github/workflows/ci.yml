@@ -22,23 +22,17 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      # optional – schadet nicht
-      - name: Fix npm bin permissions
-        run: chmod -R +x node_modules/.bin || true
-
-      # Vite NICHT über npm-scripts starten (umgeht Permission denied)
       - name: Build web (Vite via Node)
         run: node ./node_modules/vite/bin/vite.js build
 
-      # KEIN 'npx cap' mehr – immer direkt die JS-Datei mit node ausführen
-      - name: Capacitor doctor
-        run: node ./node_modules/@capacitor/cli/bin/capacitor.js doctor || true
+      - name: Capacitor doctor (via Node)
+        run: node node_modules/@capacitor/cli/bin/capacitor.js doctor || true
 
-      - name: Add iOS platform
-        run: node ./node_modules/@capacitor/cli/bin/capacitor.js add ios --skip-deps
+      - name: Add iOS platform (via Node)
+        run: node node_modules/@capacitor/cli/bin/capacitor.js add ios --skip-deps
 
-      - name: Sync iOS
-        run: node ./node_modules/@capacitor/cli/bin/capacitor.js sync ios
+      - name: Sync iOS (via Node)
+        run: node node_modules/@capacitor/cli/bin/capacitor.js sync ios
 
       - name: CocoaPods install
         run: |
