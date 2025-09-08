@@ -30,6 +30,26 @@ jobs:
       - name: Build web (Vite via Node)
         run: node ./node_modules/vite/bin/vite.js build
 
+      # 🚀 Falls noch kein capacitor.config.ts existiert, wird er hier erzeugt
+      - name: Create capacitor.config.ts if missing
+        run: |
+          if [ ! -f capacitor.config.ts ]; then
+            cat > capacitor.config.ts <<'TS'
+            import type { CapacitorConfig } from '@capacitor/cli';
+
+            const config: CapacitorConfig = {
+              appId: 'com.giannicorp.fitness',
+              appName: 'GianniCorpFitness',
+              webDir: 'dist'
+            };
+
+            export default config;
+            TS
+            echo "capacitor.config.ts created."
+          else
+            echo "capacitor.config.ts already present."
+          fi
+
       - name: Capacitor doctor
         run: node node_modules/@capacitor/cli/bin/capacitor doctor || true
 
