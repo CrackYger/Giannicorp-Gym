@@ -22,17 +22,22 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      - name: Install Capacitor toolchain
+        run: |
+          npm i -D @capacitor/cli@^6 @capacitor/ios@^6
+          npm i @capacitor/core@^6
+
       - name: Build web (Vite via Node)
         run: node ./node_modules/vite/bin/vite.js build
 
-      - name: Capacitor doctor (via Node)
-        run: node node_modules/@capacitor/cli/bin/capacitor.js doctor || true
+      - name: Capacitor doctor
+        run: node node_modules/@capacitor/cli/bin/capacitor doctor || true
 
-      - name: Add iOS platform (via Node)
-        run: node node_modules/@capacitor/cli/bin/capacitor.js add ios --skip-deps
+      - name: Add iOS platform
+        run: node node_modules/@capacitor/cli/bin/capacitor add ios --skip-deps
 
-      - name: Sync iOS (via Node)
-        run: node node_modules/@capacitor/cli/bin/capacitor.js sync ios
+      - name: Sync iOS
+        run: node node_modules/@capacitor/cli/bin/capacitor sync ios
 
       - name: CocoaPods install
         run: |
