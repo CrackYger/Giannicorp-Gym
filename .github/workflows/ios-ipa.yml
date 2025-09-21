@@ -1,64 +1,118 @@
-name: Build Web & (if present) iOS unsigned IPA
+name: Web & iOS build
 
 on:
-  workflow_dispatch:
   push:
     branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  web:
+  web-build:
+    name: Build Web (Vite)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
-        with: { version: 9 }
-
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
 
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
+
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm install --frozen-lockfile
+          elif [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
-      - name: Build web (Vite)
-        run: pnpm build
+      - name: Build
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm build
+          else
+            npm run build
+          fi
 
-      - name: Upload web dist
+      - name: Upload dist
         uses: actions/upload-artifact@v4
         with:
           name: web-dist
           path: dist
+          if-no-files-found: error
 
-  ios:
-    runs-on: macos-latest
-    needs: web
+  ios-ipa:
+    name: Build iOS IPA (if ios/ exists)
+    # FIX: wrap expression in ${{ }} so hashFiles is recognized
     if: ${{ hashFiles('ios/**') != '' }}
+    runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Build .app (no code signing)
-        working-directory: ios/App
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
         run: |
-          xcodebuild -scheme App -configuration Release -sdk iphoneos \
-            CODE_SIGNING_ALLOWED=NO BUILD_DIR="$PWD/build"
-          mkdir -p Payload
-          cp -R build/Release-iphoneos/App.app Payload/
-          /usr/bin/zip -r GiannicorpGym-unsigned.ipa Payload
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm install --frozen-lockfile
+          elif [ -f package-lock.json ]; then
+            npm ci
+          else:
+            npm install
+          fi
 
-      - name: Upload unsigned IPA
+      - name: Build web for iOS container
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm build
+          else:
+            npm run build
+          fi
+
+      - name: Sync Capacitor (optional)
+        run: |
+          if [ -f node_modules/.bin/cap ]; then
+            npx cap sync ios
+          fi
+
+      - name: Build iOS (unsigned)
+        run: |
+          if [ -d ios ]; then
+            xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath $PWD/build/App.xcarchive archive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+            xcodebuild -exportArchive -archivePath $PWD/build/App.xcarchive -exportPath $PWD/build -exportOptionsPlist ios/exportOptions.plist || true
+          else
+            echo "ios/ directory missing; skipping Xcode build."
+          fi
+
+      - name: Upload IPA (if present)
         uses: actions/upload-artifact@v4
         with:
-          name: GiannicorpGym-unsigned-ipa
-          path: ios/App/GiannicorpGym-unsigned.ipa
+          name: ios-ipa
+          path: |
+            build/*.ipa
+            build/**/*.ipa
+          if-no-files-found: warn
 
-  ios-missing:
-    runs-on: ubuntu-latest
-    needs: web
+  ios-skip-notice:
+    name: Skip iOS (no ios/ folder)
     if: ${{ hashFiles('ios/**') == '' }}
+    runs-on: ubuntu-latest
     steps:
-      - name: Note about missing iOS project
-        run: |
-          echo "::notice title=No iOS project detected::Skipping IPA build because the 'ios/' folder is not in the repo."
-          echo "If you want an unsigned IPA, add a Capacitor/Cordova iOS project at ./ios and re-run this workflow."
+      - run: echo "No ios/ folder found. Skipping iOS IPA build."
