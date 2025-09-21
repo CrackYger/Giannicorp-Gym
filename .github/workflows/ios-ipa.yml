@@ -61,7 +61,7 @@ jobs:
             pnpm install --frozen-lockfile
           elif [ -f package-lock.json ]; then
             npm ci
-          else:
+          else
             npm install
           fi
 
@@ -82,7 +82,7 @@ jobs:
           if-no-files-found: error
 
   ios-ipa:
-    name: Build unsigned .ipa (if ios/ exists)
+    name: Build unsigned IPA (if ios/ exists)
     needs: [probe-ios, web-build]
     if: ${{ needs.probe-ios.outputs.has_ios == 'true' }}
     runs-on: macos-latest
@@ -109,7 +109,7 @@ jobs:
             pnpm install --frozen-lockfile
           elif [ -f package-lock.json ]; then
             npm ci
-          else:
+          else
             npm install
           fi
 
@@ -128,18 +128,17 @@ jobs:
           if [ -f node_modules/.bin/cap ]; then
             npx cap sync ios
           else
-            echo "Capacitor CLI not found, skipping cap sync."
+            echo "Capacitor CLI not found; skipping 'cap sync ios'."
           fi
 
       - name: Archive with xcodebuild (unsigned)
         shell: bash
         run: |
           set -e
-          if [ -d "ios/App" ] && [ -d "ios/App/App.xcworkspace" ]; then
+          if [ -d "ios/App/App.xcworkspace" ]; then
             xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath "$PWD/build/App.xcarchive" archive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
           else
-            echo "No standard Capacitor workspace found under ios/App. Listing ios/: "
-            ls -la ios || true
+            echo "No ios/App/App.xcworkspace. Ensure Capacitor iOS shell is committed."
             exit 1
           fi
 
@@ -151,29 +150,26 @@ jobs:
             xcodebuild -exportArchive -archivePath "$PWD/build/App.xcarchive" -exportPath "$PWD/build" -exportOptionsPlist ios/exportOptions.plist
           fi
 
-      - name: Fallback: zip .app into .ipa (unsigned)
+      - name: Fallback to zip .app into .ipa (unsigned)
         shell: bash
         run: |
           set -e
           APPDIR="$PWD/build/App.xcarchive/Products/Applications"
           APP=$(ls "$APPDIR"/*.app 2>/dev/null | head -n1 || true)
           if [ -z "$APP" ]; then
-            echo "No .app found in archive. Aborting."
+            echo "No .app found in archive."
             exit 1
           fi
           mkdir -p "$PWD/build/Payload"
           cp -R "$APP" "$PWD/build/Payload/App.app"
           cd "$PWD/build"
           /usr/bin/zip -qry "GiannicorpGym-unsigned.ipa" Payload
-          echo "Created unsigned IPA at $PWD/build/GiannicorpGym-unsigned.ipa"
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa
-          path: |
-            build/*.ipa
-            build/**/*.ipa
+          path: build/**/*.ipa
           if-no-files-found: error
 
   ios-skip-notice:
