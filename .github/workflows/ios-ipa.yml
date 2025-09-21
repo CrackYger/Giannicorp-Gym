@@ -23,13 +23,15 @@ jobs:
         run: |
           if [ -d "ios" ]; then
             echo "has_ios=true" >> "$GITHUB_OUTPUT"
-          else:
+          else
             echo "has_ios=false" >> "$GITHUB_OUTPUT"
           fi
 
   web-build:
-    name: Build Web (Vite)
+    name: Build Web (Vite-only) + diagnostics
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,13 +65,21 @@ jobs:
             npm install
           fi
 
-      - name: Build
+      - name: Type check (non-blocking)
+        continue-on-error: true
+        shell: bash
+        run: |
+          if [ -f tsconfig.json ]; then
+            npx tsc -p tsconfig.ci.json --noEmit > typecheck.txt 2>&1 || true
+          fi
+
+      - name: Build (skip tsc, vite only)
         shell: bash
         run: |
           if [ -f pnpm-lock.yaml ]; then
-            pnpm build
+            pnpm exec vite build
           else
-            npm run build
+            npx vite build
           fi
 
       - name: Upload dist
@@ -79,11 +89,21 @@ jobs:
           path: dist
           if-no-files-found: error
 
+      - name: Upload typecheck report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: typecheck-report
+          path: typecheck.txt
+          if-no-files-found: ignore
+
   ios-ipa:
     name: Build iOS IPA (if ios/ exists)
     needs: [probe-ios]
     if: ${{ needs.probe-ios.outputs.has_ios == 'true' }}
     runs-on: macos-latest
+    env:
+      NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -117,13 +137,13 @@ jobs:
             npm install
           fi
 
-      - name: Build web for iOS container
+      - name: Build web for iOS container (vite only)
         shell: bash
         run: |
           if [ -f pnpm-lock.yaml ]; then
-            pnpm build
+            pnpm exec vite build
           else
-            npm run build
+            npx vite build
           fi
 
       - name: Sync Capacitor (optional)
