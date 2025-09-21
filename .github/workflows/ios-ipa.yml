@@ -9,6 +9,24 @@ permissions:
   contents: read
 
 jobs:
+  probe-ios:
+    name: Probe iOS folder
+    runs-on: ubuntu-latest
+    outputs:
+      has_ios: ${{ steps.check.outputs.has_ios }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check if ios/ exists
+        id: check
+        shell: bash
+        run: |
+          if [ -d "ios" ]; then
+            echo "has_ios=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_ios=false" >> "$GITHUB_OUTPUT"
+          fi
+
   web-build:
     name: Build Web (Vite)
     runs-on: ubuntu-latest
@@ -52,8 +70,8 @@ jobs:
 
   ios-ipa:
     name: Build iOS IPA (if ios/ exists)
-    # FIX: wrap expression in ${{ }} so hashFiles is recognized
-    if: ${{ hashFiles('ios/**') != '' }}
+    needs: [probe-ios]
+    if: ${{ needs.probe-ios.outputs.has_ios == 'true' }}
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -92,11 +110,42 @@ jobs:
             npx cap sync ios
           fi
 
-      - name: Build iOS (unsigned)
+      - name: Build iOS (unsigned if possible)
+        shell: bash
         run: |
-          if [ -d ios ]; then
-            xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath $PWD/build/App.xcarchive archive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
-            xcodebuild -exportArchive -archivePath $PWD/build/App.xcarchive -exportPath $PWD/build -exportOptionsPlist ios/exportOptions.plist || true
+          if [ -d "ios/App" ] && [ -f "ios/App/App.xcworkspace/contents.xcworkspacedata" ]; then
+            xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath "$PWD/build/App.xcarchive" archive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+            xcodebuild -exportArchive -archivePath "$PWD/build/App.xcarchive" -exportPath "$PWD/build" -exportOptionsPlist ios/exportOptions.plist || true
+          elif [ -d "ios" ]; then
+            # Fallback: try to find a workspace or project automatically
+            WS=$(ls ios/*.xcworkspace 2>/dev/null | head -n1 || true)
+            PROJ=$(ls ios/*.xcodeproj 2>/dev/null | head -n1 || true)
+            if [ -n "$WS" ]; then
+              SCHEME=$(xcodebuild -workspace "$WS" -list -json | /usr/bin/python3 - <<'PY'
+import json,sys
+j=json.load(sys.stdin)
+print(j["workspace"]["schemes"][0] if j.get("workspace",{}).get("schemes") else "")
+PY
+)
+              if [ -n "$SCHEME" ]; then
+                xcodebuild -workspace "$WS" -scheme "$SCHEME" -configuration Release -sdk iphoneos -archivePath "$PWD/build/App.xcarchive" archive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO || true
+                xcodebuild -exportArchive -archivePath "$PWD/build/App.xcarchive" -exportPath "$PWD/build" -exportOptionsPlist ios/exportOptions.plist || true
+              fi
+            elif [ -n "$PROJ" ]; then
+              SCHEME=$(xcodebuild -project "$PROJ" -list -json | /usr/bin/python3 - <<'PY'
+import json,sys
+j=json.load(sys.stdin)
+t=list(j.get("project",{}).get("targets",[]))
+print(t[0] if t else "")
+PY
+)
+              if [ -n "$SCHEME" ]; then
+                xcodebuild -project "$PROJ" -scheme "$SCHEME" -configuration Release -sdk iphoneos -archivePath "$PWD/build/App.xcarchive" archive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO || true
+                xcodebuild -exportArchive -archivePath "$PWD/build/App.xcarchive" -exportPath "$PWD/build" -exportOptionsPlist ios/exportOptions.plist || true
+              fi
+            else
+              echo "Found ios/ but no Xcode workspace/project. Skipping build."
+            fi
           else
             echo "ios/ directory missing; skipping Xcode build."
           fi
@@ -112,7 +161,8 @@ jobs:
 
   ios-skip-notice:
     name: Skip iOS (no ios/ folder)
-    if: ${{ hashFiles('ios/**') == '' }}
+    needs: [probe-ios]
+    if: ${{ needs.probe-ios.outputs.has_ios != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - run: echo "No ios/ folder found. Skipping iOS IPA build."
