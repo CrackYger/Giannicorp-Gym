@@ -59,4 +59,4 @@ export default function Finish() {
       </div>
     </Card>
   );
-}\n
+}

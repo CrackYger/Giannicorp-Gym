@@ -56,4 +56,4 @@ export default function WorkoutDefaults() {
       <div className="mt-2 text-sm text-zinc-400">{ONB.defaults_nudge}</div>
     </Card>
   );
-}\n
+}

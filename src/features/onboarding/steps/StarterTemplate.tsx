@@ -31,4 +31,4 @@ export default function StarterTemplate() {
       <Button onClick={()=>{ void createIfNeeded(); }}>Bestätigen</Button>
     </Card>
   );
-}\n
+}

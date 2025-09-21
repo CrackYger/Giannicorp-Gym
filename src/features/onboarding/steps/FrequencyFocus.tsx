@@ -26,4 +26,4 @@ export default function FrequencyFocus() {
       <div className="mt-2 text-sm text-emerald-400">{ONB.freq_live(sessionsPerYear)}</div>
     </Card>
   );
-}\n
+}
