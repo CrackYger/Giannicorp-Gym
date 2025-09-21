@@ -1,0 +1,64 @@
+name: Build Web & (if present) iOS unsigned IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web (Vite)
+        run: pnpm build
+
+      - name: Upload web dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist
+
+  ios:
+    runs-on: macos-latest
+    needs: web
+    if: ${{ hashFiles('ios/**') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build .app (no code signing)
+        working-directory: ios/App
+        run: |
+          xcodebuild -scheme App -configuration Release -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO BUILD_DIR="$PWD/build"
+          mkdir -p Payload
+          cp -R build/Release-iphoneos/App.app Payload/
+          /usr/bin/zip -r GiannicorpGym-unsigned.ipa Payload
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: GiannicorpGym-unsigned-ipa
+          path: ios/App/GiannicorpGym-unsigned.ipa
+
+  ios-missing:
+    runs-on: ubuntu-latest
+    needs: web
+    if: ${{ hashFiles('ios/**') == '' }}
+    steps:
+      - name: Note about missing iOS project
+        run: |
+          echo "::notice title=No iOS project detected::Skipping IPA build because the 'ios/' folder is not in the repo."
+          echo "If you want an unsigned IPA, add a Capacitor/Cordova iOS project at ./ios and re-run this workflow."
