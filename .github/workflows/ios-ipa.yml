@@ -23,7 +23,7 @@ jobs:
         run: |
           if [ -d "ios" ]; then
             echo "has_ios=true" >> "$GITHUB_OUTPUT"
-          else
+          else:
             echo "has_ios=false" >> "$GITHUB_OUTPUT"
           fi
 
@@ -38,26 +38,37 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
 
-      - name: Enable Corepack (pnpm)
-        run: corepack enable
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
+        shell: bash
         run: |
           if [ -f pnpm-lock.yaml ]; then
             pnpm install --frozen-lockfile
           elif [ -f package-lock.json ]; then
             npm ci
-          else:
+          else
             npm install
           fi
 
       - name: Build
+        shell: bash
         run: |
           if [ -f pnpm-lock.yaml ]; then
             pnpm build
-          else:
+          else
             npm run build
           fi
 
@@ -81,30 +92,42 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
 
-      - name: Enable Corepack (pnpm)
-        run: corepack enable
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
+        shell: bash
         run: |
           if [ -f pnpm-lock.yaml ]; then
             pnpm install --frozen-lockfile
           elif [ -f package-lock.json ]; then
             npm ci
-          else:
+          else
             npm install
           fi
 
       - name: Build web for iOS container
+        shell: bash
         run: |
           if [ -f pnpm-lock.yaml ]; then
             pnpm build
-          else:
+          else
             npm run build
           fi
 
       - name: Sync Capacitor (optional)
+        shell: bash
         run: |
           if [ -f node_modules/.bin/cap ]; then
             npx cap sync ios
